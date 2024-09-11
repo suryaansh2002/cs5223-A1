@@ -1,74 +1,100 @@
-import java.rmi.NotBoundException;
-import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
-import java.util.Map;
+import java.rmi.*;
+import java.rmi.registry.*;
+import java.rmi.server.UnicastRemoteObject;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class Game {
-    private static final int PING_INTERVAL = 2000; // 2 seconds
-    private static boolean isPrimary = false;
+interface GameInterface extends Remote {
+    void ping() throws RemoteException;
+    void notifyNewUser(GameInfo newGame) throws RemoteException;
+}
+
+public class Game extends UnicastRemoteObject implements GameInterface {
+    private String playerId;
+    private String trackerIP = "127.0.0.1"; // Assuming Tracker is always running on localhost
+    private int trackerPort = 2000; // Fixed Tracker port
+    private List<GameInfo> gameList;
+
+    protected Game(String playerId, int port) throws RemoteException {
+        super(port);  // Run Game instance on the specified port
+        this.playerId = playerId;
+    }
+
+    @Override
+    public void ping() throws RemoteException {
+        System.out.println("Ping received from primary server.");
+    }
+
+    @Override
+    public void notifyNewUser(GameInfo newGame) throws RemoteException {
+        System.out.println("New user to ping: " + newGame.playerId);
+        gameList.add(newGame);  // Add the new user to the game list
+    }
 
     public static void main(String[] args) {
-        if (args.length != 2) {
-            System.out.println("Usage: java Game [port-number] [player-id]");
-            return;
+        if (args.length < 2) {
+            System.out.println("Usage: java Game [port-number] [Player-ID]");
+            System.exit(1);
         }
 
-        int port = Integer.parseInt(args[0]);
-        String playerID = args[1];
+        int gamePort = Integer.parseInt(args[0]);
+        String playerId = args[1];
 
         try {
-            Registry registry = LocateRegistry.getRegistry("localhost", 2000);
+            // Locate Tracker
+            Registry registry = LocateRegistry.getRegistry("127.0.0.1", 2000);
             TrackerInterface tracker = (TrackerInterface) registry.lookup("Tracker");
 
-            GameInfo gameInfo = tracker.registerGame(playerID, "localhost", port);
-            System.out.println("Game registered with Tracker. N=" + gameInfo.getN() + ", K=" + gameInfo.getK());
+            // Register this Game instance
+            String ipAddress = java.net.InetAddress.getLocalHost().getHostAddress();
+            Game gameInstance = new Game(playerId, gamePort);
+            Registry gameRegistry = LocateRegistry.createRegistry(gamePort);
+            gameRegistry.rebind("Game", gameInstance);
 
-            Map<String, GameInfo> gameMap = gameInfo.getGameMap();
-            System.out.println("Current game map: " + gameMap);
+            List<GameInfo> gameList = tracker.registerGame(playerId, ipAddress, gamePort);
+            gameInstance.gameList = gameList;
 
-            // Determine if this instance is the primary server
-            isPrimary = (gameMap.size() == 1);
-
-            // Start pinging other servers if this instance is the primary server
-            if (isPrimary) {
-                Timer timer = new Timer();
-                timer.scheduleAtFixedRate(new PingTask(gameMap), PING_INTERVAL, PING_INTERVAL);
+            System.out.println("Registered with Tracker. Current games:");
+            for (GameInfo game : gameList) {
+                System.out.println("Player: " + game.playerId + " at " + game.ipAddress + ":" + game.port);
             }
 
-            // Keep the game running until user input (e.g., pressing 9)
+            // If this is the primary server, start pinging
+            if (gameList.get(0).playerId.equals(playerId)) {
+                System.out.println("I am the primary server.");
+                startPinging(gameInstance.gameList);
+            }
+
+            // Keep the Game running
             while (true) {
-                int input = System.in.read();
-                if (input == '9') {
-                    System.out.println("Game stopped.");
-                    System.exit(0);
+                if (System.in.read() == '9') {
+                    System.out.println("Game server is shutting down.");
+                    break;
                 }
             }
-        } catch (NotBoundException e) {
-            System.err.println("Tracker not found: " + e.getMessage());
-        } catch (RemoteException e) {
-            System.err.println("RMI exception: " + e.getMessage());
+
         } catch (Exception e) {
-            System.err.println("Game exception: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
-    private static class PingTask extends TimerTask {
-        private final Map<String, GameInfo> gameMap;
-
-        PingTask(Map<String, GameInfo> gameMap) {
-            this.gameMap = gameMap;
-        }
-
-        @Override
-        public void run() {
-            for (GameInfo gameInfo : gameMap.values()) {
-                // Ping each game server and log the result
-                System.out.println("Pinging " + gameInfo.getPlayerID() + " at " + gameInfo.getIpAddress() + ":" + gameInfo.getPort());
-                // Here you can implement actual ping logic if needed
+    private static void startPinging(List<GameInfo> gameList) {
+        Timer timer = new Timer();
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                System.out.println("Pinging all game servers...");
+                for (GameInfo game : gameList) {
+                    try {
+                        Registry registry = LocateRegistry.getRegistry(game.ipAddress, game.port);
+                        GameInterface gameInstance = (GameInterface) registry.lookup("Game");
+                        gameInstance.ping();
+                    } catch (Exception e) {
+                        System.out.println("Failed to ping " + game.playerId);
+                    }
+                }
             }
-        }
+        }, 0, 2000);
     }
 }
