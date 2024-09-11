@@ -1,6 +1,7 @@
 import java.rmi.*;
 import java.rmi.registry.*;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -8,19 +9,22 @@ import java.util.TimerTask;
 interface GameInterface extends Remote {
     void ping() throws RemoteException;
     void notifyNewUser(GameInfo newGame) throws RemoteException;
+    void updateGameList(List<GameInfo> updatedList) throws RemoteException;
 }
 
 public class Game extends UnicastRemoteObject implements GameInterface {
     private String playerId;
-    private String trackerIP = "127.0.0.1"; // Assuming Tracker is always running on localhost
-    private int trackerPort = 2000; // Fixed Tracker port
     private List<GameInfo> gameList;
     private int serverPort;
+    private Timer pingTimer;
+    private static final String TRACKER_IP = "127.0.0.1"; // Default Tracker IP
+    private static final int TRACKER_PORT = 2000; // Default Tracker port
 
     protected Game(String playerId, int port) throws RemoteException {
         super(port);  // Run Game instance on the specified port
         this.playerId = playerId;
         this.serverPort = port;
+        this.gameList = new ArrayList<>();
     }
 
     @Override
@@ -34,6 +38,15 @@ public class Game extends UnicastRemoteObject implements GameInterface {
         gameList.add(newGame);  // Add the new user to the game list
     }
 
+    @Override
+    public void updateGameList(List<GameInfo> updatedList) throws RemoteException {
+        gameList = updatedList;
+        System.out.println("Updated game list received from primary server:");
+        for (GameInfo game : gameList) {
+            System.out.println("Player: " + game.playerId + " at " + game.ipAddress + ":" + game.port);
+        }
+    }
+
     public static void main(String[] args) {
         if (args.length < 2) {
             System.out.println("Usage: java Game [port-number] [Player-ID]");
@@ -45,7 +58,7 @@ public class Game extends UnicastRemoteObject implements GameInterface {
 
         try {
             // Locate Tracker
-            Registry registry = LocateRegistry.getRegistry("127.0.0.1", 2000);
+            Registry registry = LocateRegistry.getRegistry(TRACKER_IP, TRACKER_PORT);
             TrackerInterface tracker = (TrackerInterface) registry.lookup("Tracker");
 
             // Register this Game instance
@@ -55,7 +68,7 @@ public class Game extends UnicastRemoteObject implements GameInterface {
             gameRegistry.rebind("Game", gameInstance);
 
             List<GameInfo> gameList = tracker.registerGame(playerId, ipAddress, gamePort);
-            gameInstance.gameList = gameList;
+            gameInstance.gameList = new ArrayList<>(gameList);  // Initialize game list with the list from the Tracker
 
             System.out.println("Registered with Tracker. Current games:");
             for (GameInfo game : gameList) {
@@ -72,6 +85,9 @@ public class Game extends UnicastRemoteObject implements GameInterface {
             while (true) {
                 if (System.in.read() == '9') {
                     System.out.println("Game server is shutting down.");
+                    if (gameInstance.pingTimer != null) {
+                        gameInstance.pingTimer.cancel();
+                    }
                     break;
                 }
             }
@@ -82,12 +98,13 @@ public class Game extends UnicastRemoteObject implements GameInterface {
     }
 
     private static void startPinging(Game gameInstance) {
-        Timer timer = new Timer();
-        timer.scheduleAtFixedRate(new TimerTask() {
+        gameInstance.pingTimer = new Timer();
+        gameInstance.pingTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 System.out.println("Pinging all game servers...");
-                for (GameInfo game : gameInstance.gameList) {
+                List<GameInfo> gameListCopy = new ArrayList<>(gameInstance.gameList); // Use a copy to avoid ConcurrentModificationException
+                for (GameInfo game : gameListCopy) {
                     if (game.port != gameInstance.serverPort) { // Skip pinging itself
                         try {
                             Registry registry = LocateRegistry.getRegistry(game.ipAddress, game.port);
@@ -96,6 +113,14 @@ public class Game extends UnicastRemoteObject implements GameInterface {
                             System.out.println("Ping to " + game.playerId + " was successful.");
                         } catch (Exception e) {
                             System.out.println("Failed to ping " + game.playerId + ": " + e.getMessage());
+                            // Remove dead server from the list and notify Tracker
+                            try {
+                                Registry trackerRegistry = LocateRegistry.getRegistry(TRACKER_IP, TRACKER_PORT);
+                                TrackerInterface tracker = (TrackerInterface) trackerRegistry.lookup("Tracker");
+                                tracker.removeGame(game.playerId);
+                            } catch (Exception ex) {
+                                System.out.println("Failed to notify Tracker about dead server: " + ex.getMessage());
+                            }
                         }
                     }
                 }

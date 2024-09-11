@@ -1,0 +1,9 @@
+For now the code is to be run as follows:
+
+- Compile all java files: javac *.java
+
+Open Multiple terminal tabs-
+1. T1: rmiregistery
+2. T2: java Tracker  10 20 
+3. T3:  java Game  2001 ab
+4. T4: java Game  2002 cd

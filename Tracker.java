@@ -4,9 +4,11 @@ import java.rmi.registry.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.io.Serializable;
+
 interface TrackerInterface extends Remote {
     List<GameInfo> registerGame(String playerId, String ipAddress, int port) throws RemoteException;
     void notifyPrimary(GameInfo newGame) throws RemoteException;
+    void removeGame(String playerId) throws RemoteException;
     int getN() throws RemoteException;
     int getK() throws RemoteException;
 }
@@ -53,12 +55,32 @@ public class Tracker extends UnicastRemoteObject implements TrackerInterface {
                 System.out.println("Error contacting primary server: " + e.getMessage());
             }
         }
-        return games;
+        return new ArrayList<>(games); // Return a copy of the list
     }
 
     @Override
     public void notifyPrimary(GameInfo newGame) throws RemoteException {
-        // Already handled in registerGame to avoid redundancy
+        // This method is now redundant and should be removed from the interface
+    }
+
+    @Override
+    public void removeGame(String playerId) throws RemoteException {
+        games.removeIf(game -> game.playerId.equals(playerId));
+        System.out.println("Removed game: " + playerId);
+        
+        // Notify the primary server about the removal
+        if (!games.isEmpty()) {
+            GameInfo primaryGame = games.get(0);
+            try {
+                Registry registry = LocateRegistry.getRegistry(primaryGame.ipAddress, primaryGame.port);
+                GameInterface primaryServer = (GameInterface) registry.lookup("Game");
+                primaryServer.updateGameList(new ArrayList<>(games));
+            } catch (NotBoundException e) {
+                System.out.println("Primary server not found in the registry: " + e.getMessage());
+            } catch (RemoteException e) {
+                System.out.println("Error contacting primary server: " + e.getMessage());
+            }
+        }
     }
 
     @Override
