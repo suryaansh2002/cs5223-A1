@@ -15,10 +15,12 @@ public class Game extends UnicastRemoteObject implements GameInterface {
     private String trackerIP = "127.0.0.1"; // Assuming Tracker is always running on localhost
     private int trackerPort = 2000; // Fixed Tracker port
     private List<GameInfo> gameList;
+    private int serverPort;
 
     protected Game(String playerId, int port) throws RemoteException {
         super(port);  // Run Game instance on the specified port
         this.playerId = playerId;
+        this.serverPort = port;
     }
 
     @Override
@@ -63,7 +65,7 @@ public class Game extends UnicastRemoteObject implements GameInterface {
             // If this is the primary server, start pinging
             if (gameList.get(0).playerId.equals(playerId)) {
                 System.out.println("I am the primary server.");
-                startPinging(gameInstance.gameList);
+                startPinging(gameInstance);
             }
 
             // Keep the Game running
@@ -79,19 +81,22 @@ public class Game extends UnicastRemoteObject implements GameInterface {
         }
     }
 
-    private static void startPinging(List<GameInfo> gameList) {
+    private static void startPinging(Game gameInstance) {
         Timer timer = new Timer();
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 System.out.println("Pinging all game servers...");
-                for (GameInfo game : gameList) {
-                    try {
-                        Registry registry = LocateRegistry.getRegistry(game.ipAddress, game.port);
-                        GameInterface gameInstance = (GameInterface) registry.lookup("Game");
-                        gameInstance.ping();
-                    } catch (Exception e) {
-                        System.out.println("Failed to ping " + game.playerId);
+                for (GameInfo game : gameInstance.gameList) {
+                    if (game.port != gameInstance.serverPort) { // Skip pinging itself
+                        try {
+                            Registry registry = LocateRegistry.getRegistry(game.ipAddress, game.port);
+                            GameInterface gameInstance = (GameInterface) registry.lookup("Game");
+                            gameInstance.ping();
+                            System.out.println("Ping to " + game.playerId + " was successful.");
+                        } catch (Exception e) {
+                            System.out.println("Failed to ping " + game.playerId + ": " + e.getMessage());
+                        }
                     }
                 }
             }
