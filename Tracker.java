@@ -1,113 +1,107 @@
-import java.rmi.*;
-import java.rmi.server.*;
-import java.rmi.registry.*;
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.io.Serializable;
+import java.rmi.Naming;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-interface TrackerInterface extends Remote {
-    List<GameInfo> registerGame(String playerId, String ipAddress, int port) throws RemoteException;
-    void notifyPrimary(GameInfo newGame) throws RemoteException;
-    void removeGame(String playerId) throws RemoteException;
-    int getN() throws RemoteException;
-    int getK() throws RemoteException;
-}
-
-class GameInfo implements Serializable {
+public class Tracker extends UnicastRemoteObject implements TrackerInterface, Serializable{
     private static final long serialVersionUID = 1L;
-    String playerId;
-    String ipAddress;
-    int port;
+    private static final Logger logger = Logger.getLogger(Tracker.class.getName());
 
-    public GameInfo(String playerId, String ipAddress, int port) {
-        this.playerId = playerId;
-        this.ipAddress = ipAddress;
+    private List<GameInterface> games;
+
+    private int gridSize;
+    private int numTreasures;
+    private int port;
+
+    public Tracker(Integer port, Integer N, Integer K) throws RemoteException {
         this.port = port;
-    }
-}
+        this.gridSize = N;
+        this.numTreasures = K;
 
-public class Tracker extends UnicastRemoteObject implements TrackerInterface {
-    private int N, K;
-    private List<GameInfo> games;
-
-    public Tracker(int N, int K) throws RemoteException {
-        this.N = N;
-        this.K = K;
         this.games = new ArrayList<>();
     }
 
-    @Override
-    public List<GameInfo> registerGame(String playerId, String ipAddress, int port) throws RemoteException {
-        GameInfo newGame = new GameInfo(playerId, ipAddress, port);
-        games.add(newGame);
-        System.out.println("New game registered: " + playerId + " at " + ipAddress + ":" + port);
-        
-        // Notify primary server if it's not the first user
-        if (games.size() > 1) {
-            GameInfo primaryGame = games.get(0);
+    public Integer getPort() {
+        return this.port;
+    }
+
+    public Integer getGridSize() {
+        return this.gridSize;
+    }
+
+    public Integer getNumTreasures() {
+        return this.numTreasures;
+    }
+
+    public List<GameInterface> getGames() {
+        return this.games;
+    }
+
+    public List<GameInterface> registerGame(String host, Integer port, String playerID) {
+        String gameURL = "rmi://" + host + ":" + port + "/" + playerID;
+        try {
+            GameInterface game = (GameInterface) Naming.lookup(gameURL);
+            
+            if (this.games.isEmpty()) {
+                game.setPrimary(true);
+                games.add(game);
+            } else {
+                game.setPrimary(false);
+            }
+            return this.games;
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Error registering game: {0}", e.getMessage());
+            e.printStackTrace();
+        }
+
+        return this.games;
+    }
+
+    public void initGame(int n, int k) {
+        this.gridSize = n;
+        this.numTreasures = k;
+    }
+
+    public List<GameInterface> setGames(List<GameInterface> games) {
+        this.games = games;
+        printCurrentGames();
+        return this.games;
+    }
+
+    private void printCurrentGames() {
+        logger.log(Level.INFO, "Current games:");
+        for (GameInterface game : this.games) {
             try {
-                Registry registry = LocateRegistry.getRegistry(primaryGame.ipAddress, primaryGame.port);
-                GameInterface primaryServer = (GameInterface) registry.lookup("Game");
-                primaryServer.notifyNewUser(newGame);
-            } catch (NotBoundException e) {
-                System.out.println("Primary server not found in the registry: " + e.getMessage());
+                logger.log(Level.INFO, "Game: {0} Primary: {1} Backup: {2}", new Object[]{game.getPlayerID(), game.isPrimary(), game.isBackup()});
             } catch (RemoteException e) {
-                System.out.println("Error contacting primary server: " + e.getMessage());
+                logger.log(Level.SEVERE, "Error getting game details: {0}", e.getMessage());
+                e.printStackTrace();
             }
         }
-        return new ArrayList<>(games); // Return a copy of the list
-    }
-
-    @Override
-    public void notifyPrimary(GameInfo newGame) throws RemoteException {
-        // This method is now redundant and should be removed from the interface
-    }
-
-    @Override
-    public void removeGame(String playerId) throws RemoteException {
-        games.removeIf(game -> game.playerId.equals(playerId));
-        System.out.println("Removed game: " + playerId);
-        
-        // Notify the primary server about the removal
-        if (!games.isEmpty()) {
-            GameInfo primaryGame = games.get(0);
-            try {
-                Registry registry = LocateRegistry.getRegistry(primaryGame.ipAddress, primaryGame.port);
-                GameInterface primaryServer = (GameInterface) registry.lookup("Game");
-                primaryServer.updateGameList(new ArrayList<>(games));
-            } catch (NotBoundException e) {
-                System.out.println("Primary server not found in the registry: " + e.getMessage());
-            } catch (RemoteException e) {
-                System.out.println("Error contacting primary server: " + e.getMessage());
-            }
-        }
-    }
-
-    @Override
-    public int getN() throws RemoteException {
-        return N;
-    }
-
-    @Override
-    public int getK() throws RemoteException {
-        return K;
     }
 
     public static void main(String[] args) {
-        if (args.length < 2) {
-            System.out.println("Usage: java Tracker [N] [K]");
+        if (args.length < 3) {
+            logger.severe("Usage: java Tracker <port> <N> <K>");
             System.exit(1);
         }
-
-        int N = Integer.parseInt(args[0]);
-        int K = Integer.parseInt(args[1]);
-
+        int port = Integer.parseInt(args[0]);
+        int n = Integer.parseInt(args[1]);
+        int k = Integer.parseInt(args[2]);
+        
         try {
-            Tracker tracker = new Tracker(N, K);
-            Registry registry = LocateRegistry.createRegistry(2000);  // Fixed port at 2000
-            registry.rebind("Tracker", tracker);
-            System.out.println("Tracker is running on port 2000 with N=" + N + " and K=" + K);
+            TrackerInterface tracker = new Tracker(port, n, k);
+            Registry registry = LocateRegistry.createRegistry(port);
+            registry.bind("Tracker", tracker);
+            logger.log(Level.INFO, "Tracker ready on port {0}", port);
         } catch (Exception e) {
+            logger.log(Level.SEVERE, "Tracker exception: {0}", e.getMessage());
             e.printStackTrace();
         }
     }
