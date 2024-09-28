@@ -55,7 +55,6 @@ public class GameGUI extends JFrame {
     }
 
     // Method to create player info panel
-   // Method to create player info panel without relying on GameView
 private JPanel createPlayerInfoPanel() {
     JPanel infoPanel = new JPanel();
     infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));  // Vertical box layout
