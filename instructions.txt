@@ -1,9 +1,110 @@
-For now the code is to be run as follows:
 
 - Compile all java files: javac *.java
 
 Open Multiple terminal tabs-
-1. T1: rmiregistery
-2. T2: java Tracker  10 20 
-3. T3:  java Game  2001 ab
-4. T4: java Game  2002 cd
+1. T1: rmiregistry 1099
+2. T2: java Tracker 1099 5 5
+3. T3:  java Game  127.0.0.1 1099 ab
+4. T4:  java Game  127.0.0.1 1099 cd
+5. T4:  java Game  127.0.0.1 1099 ef
+
+
+To run stress test:
+1. T1: rmiregistry 1099
+2. T2: java Tracker 1099 15 10
+3. T3: java StressTest 127.0.0.1 1099 "java Game"
+
+Functioning - 
+ 1.⁠ ⁠Game Initialization and Player Join Process:
+
+   - The Tracker is started first, initializing with grid size (n) and number of treasures (k).
+   - Players start their Game instances, connecting to the Tracker.
+   - The first player to join becomes the primary, the second becomes the backup.
+   - When a player joins:
+     - They get a random position on the grid.
+     - Their information is added to various tracking structures (playerPositionMap, playerTreasureMap, etc.).
+     - The Tracker updates its serverList with the new player.
+
+ 2.⁠ ⁠primary-backup Hierarchy:
+
+   - primary (first player):
+     - Manages the authoritative game state (Gamestate).
+     - Processes all player moves.
+     - Periodically pings all players to check their state.
+     - Assigns a new backup if the current backup fails.
+   - backup (second player):
+     - Maintains a copy of the game state.
+     - Periodically pings the primary to check its state.
+     - Takes over as primary if the original primary fails.
+   - Regular players:
+     - Send move requests to the primary.
+     - Receive game state updates.
+
+ 3.⁠ ⁠Game State Management:
+
+   - Gamestate class encapsulates the entire game state:
+     - Grid size and total treasures.
+     - Player positions, scores, and last move numbers.
+     - Treasure positions.
+   - The primary maintains the authoritative Gamestate.
+   - After each move, the primary updates the backup's Gamestate.
+
+ 4.⁠ ⁠Player Movement and Treasure Collection:
+
+   - Players input move directions (N, S, E, W) or choose to quit (9).
+   - Move requests are sent to the primary via RMI.
+   - primary processes moves in the movePlayer method:
+     - Validates the move.
+     - Updates player position.
+     - Checks for treasure collection.
+     - Updates scores if treasure is collected.
+     - Randomly places a new treasure if one was collected.
+
+ 5.⁠ ⁠Fault Tolerance Mechanisms:
+
+   - primary Failure:
+     - backup detects primary failure through periodic pinging.
+     - backup promotes itself to primary (backupBecomeprimary method).
+     - New primary updates the Tracker and assigns a new backup.
+   - backup Failure:
+     - primary detects backup failure through periodic pinging.
+     - primary assigns a new backup from remaining players (assignNewbackup method).
+   - Regular Player Failure:
+     - primary detects failure through periodic pinging.
+     - primary removes the failed player from the game (playerQuit method).
+
+ 6.⁠ ⁠Concurrency and Synchronization:
+
+   - Critical sections (like movePlayer) are synchronized to prevent race conditions.
+   - Collections (e.g., playerPositionMap) are accessed in a thread-safe manner.
+   - Separate threads for game input, primary pinging, and backup pinging run concurrently.
+
+ 7.⁠ ⁠RMI Communication:
+
+   - Game_Interface and Tracker_Interface interfaces define remote methods.
+   - Naming.rebind is used to register RMI objects.
+   - Naming.lookup is used to get references to remote objects.
+   - Remote method calls are used for all inter-component communication.
+
+ 8.⁠ ⁠User Interface and Game Visualization:
+
+   - GameView class handles the text-based UI.
+   - printGameSummary method displays the current game state:
+     - Player positions on the grid.
+     - Treasure locations.
+     - Player scores.
+
+ 9.⁠ ⁠Exception Handling and Logging:
+
+   - Custom WrongGameException for game-specific errors.
+   - Extensive use of try-catch blocks to handle RMI-related exceptions.
+   - Logging class for consistent message output across the system.
+
+10.⁠ ⁠Player Quitting and Game Cleanup:
+
+    - Players can quit voluntarily or be removed due to failure.
+    - quit method handles cleanup:
+      - Removes player from all game state structures.
+      - Unbinds the player's RMI object.
+      - Interrupts all running threads for that player.
+
