@@ -118,7 +118,7 @@ public class GameState implements Serializable {
     // Function to check whether new position of player after making a move is valid or not
     private boolean checkPositionIsValid(Position newPlayerPosition) {
         return isValidCell(newPlayerPosition.getX(), newPlayerPosition.getY()) 
-            && isVacantCell(newPlayerPosition.getX(), newPlayerPosition.getY());
+            && isPlayerVacantCell(newPlayerPosition.getX(), newPlayerPosition.getY());
     }
 
     // Function to check whether a cell is present within boundary of grid
@@ -140,16 +140,16 @@ public class GameState implements Serializable {
         int y = position.getY();
         switch (direction) {
             case N:
-                y = Math.max(0, y - 1);
-                break;
-            case S:
-                y = Math.min(gridSize - 1, y + 1);
-                break;
-            case W:
                 x = Math.max(0, x - 1);
                 break;
-            case E:
+            case S:
                 x = Math.min(gridSize - 1, x + 1);
+                break;
+            case W:
+                y = Math.max(0, y - 1);
+                break;
+            case E:
+                y = Math.min(gridSize - 1, y + 1);
                 break;
             default:
                 break;
