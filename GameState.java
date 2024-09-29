@@ -219,11 +219,9 @@ public class GameState implements Serializable {
 
     // Function to update Player list 
     public void updatePlayerList(List<String> existPlayerList) {
-        for (String player : existPlayerList) {
-            if (!playerPositionMap.containsKey(player)) {
-                playerQuit(player);
-            }
-        }
+        Set<String> wholePlayerSet = new HashSet<>(playerPositionMap.keySet());
+        wholePlayerSet.removeAll(existPlayerList);
+        wholePlayerSet.parallelStream().forEach(playerName -> playerQuit(playerName));
     }
 
 }
