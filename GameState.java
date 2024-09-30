@@ -50,7 +50,8 @@ public class GameState implements Serializable {
     // Function to be used by primary server to add a new player to game.
     public synchronized void addNewPlayerToGame(String playerName) {
         Position position = getAvailablePosition();
-        playerPositionGrid[position.getX()][position.getY()] = playerName;
+        playerPositionGrid[position.getX()][position.getY()] = playerName; // Assign Random position to new player
+        // Add player to necessary maps
         playerPositionMap.put(playerName, position);
         playerTreasureMap.put(playerName, 0);
         playerLastMoveMap.put(playerName, -1);
@@ -85,7 +86,7 @@ public class GameState implements Serializable {
 
     // Check if a particular cell in grid contains a treasure
     private boolean isTreasureVacantCell(int x, int y) {
-        return treasurePositionGrid[x][y] == 0;
+        return treasurePositionGrid[x][y] != 1;
     }
 
 
@@ -96,21 +97,30 @@ public class GameState implements Serializable {
             return;
         }
         if (playerLastMoveMap.get(playerName) >= numOfStep) {
+            Logger.error("This move has already been made for player: " + playerName);
             return;
         }
-        Position newPlayerPosition = getNewPlayerPosition(position, direction);
-        if (!checkPositionIsValid(newPlayerPosition)) {
-            newPlayerPosition = position;
+        Position newPlayerPosition = getNewPlayerPosition(position, direction); // Get New position of the player after making move
+        if (!checkPositionIsValid(newPlayerPosition)) { // Check if that position is valid
+            Logger.error("Invalid move by player: " + playerName);
+            newPlayerPosition = position; // If invalid move keep player at original position only
         }
-        playerPositionGrid[position.getX()][position.getY()] = null;
+                // Updating map and grid with new player position and increase numOfStep
+
+        playerPositionGrid[position.getX()][position.getY()] = null; // Set Previous poisition of player to null
+        
+        // Updating map and grid with new player position and increase numOfStep
         playerPositionGrid[newPlayerPosition.getX()][newPlayerPosition.getY()] = playerName;
         playerPositionMap.put(playerName, newPlayerPosition);
         playerLastMoveMap.put(playerName, numOfStep);
 
+        // If treasure present in new position, to collect it and update player score
         int treasure = treasurePositionGrid[newPlayerPosition.getX()][newPlayerPosition.getY()];
         if (treasure >0) {
-            playerTreasureMap.put(playerName, playerTreasureMap.get(playerName) +  treasure);
-            treasurePositionGrid[newPlayerPosition.getX()][newPlayerPosition.getY()] = 0;
+            this.playerTreasureMap.put(playerName, playerTreasureMap.get(playerName) +  treasure);
+            this.treasurePositionGrid[newPlayerPosition.getX()][newPlayerPosition.getY()] = 0;
+            Logger.info("Teasure collected by player " + playerName + " Location of treasure collected- " + newPlayerPosition.getX() + " , " + newPlayerPosition.getY());
+
             spawnNewTreasure();
         }
     }
@@ -130,6 +140,9 @@ public class GameState implements Serializable {
     // Function to get available position in grid and spawn an new treasure there
     private void spawnNewTreasure() {
         Position position = getAvailablePosition();
+        while (!isTreasureVacantCell(position.getX(), position.getY())) {
+            position = getAvailablePosition();
+        }
         treasurePositionGrid[position.getX()][position.getY()] = 1;
     }
 
@@ -160,6 +173,7 @@ public class GameState implements Serializable {
 
     // Function to handle player leaving a game
     public void playerQuit(String playerName) {
+        // Removing player from all maps and grids needed
         Position position = playerPositionMap.get(playerName);
         if (position != null) {
             playerPositionGrid[position.getX()][position.getY()] = null;
@@ -199,14 +213,20 @@ public class GameState implements Serializable {
 
     //  Function to check whether a player is present in a particular location in the grid
     public String getPlayerAt(int j, int i) {
-        String player = playerPositionGrid[j][i];
-        if (player == null) {
+        String playerName =  playerPositionGrid[j][i];
+        if (playerName == null || playerName.isEmpty()) return null;
+
+        Position position = playerPositionMap.get(playerName);
+        if (position == null) {
+            playerPositionGrid[j][i] = null;
             return null;
         }
-        Position position = playerPositionMap.get(player);
-        if (position != null && position.getX() == j && position.getY() == i) {
-            return player;
+
+        if (position.getX() == j && position.getY() == i) {
+            return playerName;
         } else {
+            //wrong player position
+            playerPositionGrid[j][i] = null;
             return null;
         }
     }
@@ -219,9 +239,9 @@ public class GameState implements Serializable {
 
     // Function to update Player list 
     public void updatePlayerList(List<String> existPlayerList) {
-        Set<String> wholePlayerSet = new HashSet<>(playerPositionMap.keySet());
-        wholePlayerSet.removeAll(existPlayerList);
-        wholePlayerSet.parallelStream().forEach(playerName -> playerQuit(playerName));
+        Set<String> allPlayers = new HashSet<>(playerPositionMap.keySet());
+        allPlayers.removeAll(existPlayerList);
+        allPlayers.parallelStream().forEach(playerName -> playerQuit(playerName));
     }
 
 }
