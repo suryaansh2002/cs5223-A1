@@ -5,10 +5,28 @@
 
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
+
 import java.awt.*;
+import java.io.File;
 import java.util.Map;
 
+
+
 public class GameGUI extends JFrame {
+
+    // Pastel colors
+    private final Color pastelGreen = new Color(204, 255, 204);
+    private final Color pastelBlue = new Color(204, 229, 255);
+    private final Color pastelYellow = new Color(255, 255, 204);
+    private final Color pastelPink = new Color(255, 204, 229);
+    private final Color pastelPurple = new Color(229, 204, 255);
+    
+
+    // Define the treasure icon
+    private final ImageIcon treasureIcon = new ImageIcon(new ImageIcon("treasure.png").getImage().getScaledInstance(40, 40, Image.SCALE_SMOOTH));
+
 
     private GameState gameState;
     private String playerName;
@@ -25,7 +43,7 @@ public class GameGUI extends JFrame {
         this.backupId = backupId;
 
         // set up main frame
-        setTitle("Maze Game - " + playerName);
+        setTitle("Maze Game - Player:" + playerName);
         setSize(800, 600);  // window size
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
@@ -41,62 +59,120 @@ public class GameGUI extends JFrame {
         setVisible(true);
     }
 
-    // create maze panel
+        // Create maze panel with row and column numbers
     private JPanel createMazePanel() {
+        // Create a panel with one extra row and column for numbering
         JPanel mazePanel = new JPanel();
-        mazePanel.setLayout(new GridLayout(gameState.getGridSize(), gameState.getGridSize()));  // grid layout
+        mazePanel.setLayout(new GridLayout(gameState.getGridSize() + 1, gameState.getGridSize() + 1));
 
-        // grid cells based on game state
+        // Add empty label at the top-left corner (0,0 position)
+        mazePanel.add(new JLabel("INDEX")); 
+
+        // Add column numbers at the top
+        for (int col = 0; col < gameState.getGridSize(); col++) {
+            // mazePanel.add(new JLabel(String.valueOf(col), SwingConstants.CENTER));
+            JLabel colLabel = new JLabel(String.valueOf(col), SwingConstants.CENTER);
+            colLabel.setOpaque(true);  // Make sure the background is painted
+            colLabel.setBackground(pastelPurple);  // Use pastel purple for column labels
+            mazePanel.add(colLabel);
+        }
+
+        // Add row numbers and the maze grid
         for (int row = 0; row < gameState.getGridSize(); row++) {
+            // Add the row number at the start of each row
+            JLabel rowLabel = new JLabel(String.valueOf(row), SwingConstants.CENTER);
+            rowLabel.setOpaque(true);
+            rowLabel.setBackground(pastelPink);  // Use pastel pink for row labels
+            mazePanel.add(rowLabel);
+
+            // Add the actual maze cells
             for (int col = 0; col < gameState.getGridSize(); col++) {
                 JPanel cell = new JPanel();
-                cell.setBorder(BorderFactory.createLineBorder(Color.BLACK));  // borders
+                cell.setBorder(BorderFactory.createLineBorder(Color.BLACK));
 
-                // add players / treasure markers
+                    // Apply a pastel background color to each cell
                 if (gameState.getPlayerAt(row, col) != null) {
+                    cell.setBackground(pastelBlue);  // Pastel blue for player cells
                     cell.add(new JLabel(gameState.getPlayerAt(row, col)));
                 } else if (gameState.getTreasureAt(row, col) == 1) {
-                    cell.add(new JLabel("*"));
+                    cell.setBackground(pastelYellow);  // Pastel yellow for treasure cells
+                    cell.add(new JLabel(treasureIcon));  // Add the treasure icon
+                } else {
+                    cell.setBackground(pastelGreen);  // Pastel green for empty cells
                 }
-                mazePanel.add(cell);  // add cell to panel
+
+                mazePanel.add(cell);  // Add cell to the grid
             }
         }
 
         return mazePanel;
     }
 
-    // player info panel
+    /// Create the player info panel with a JTable using pastel colors
     private JPanel createPlayerInfoPanel() {
         JPanel infoPanel = new JPanel();
-        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));  // vertical box layout
+        infoPanel.setLayout(new BorderLayout());  // Use BorderLayout to handle table layout
 
-        // header for player info
-        infoPanel.add(new JLabel("Player Info"));
-        infoPanel.add(new JLabel("ID    |  Score"));
+        // Table columns and data
+        String[] columnNames = {"ID", "SCORE"};
+        DefaultTableModel tableModel = new DefaultTableModel(columnNames, 0);  // Create an empty table model
 
-        // add info primary player
+        // Add primary player info
         if (primaryId != null && gameState.getPlayerTreasureMap().containsKey(primaryId)) {
             Integer primaryScore = gameState.getPlayerTreasureMap().get(primaryId);
-            infoPanel.add(new JLabel(primaryId + " (M) | " + primaryScore));
+            tableModel.addRow(new Object[]{primaryId + " (P)", primaryScore});
         }
 
-        // add info backup player if there
-        if (backupId != null && !backupId.isEmpty() && gameState.getPlayerTreasureMap().containsKey(backupId)) {
+        // Add backup player info
+        if (backupId != null && gameState.getPlayerTreasureMap().containsKey(backupId)) {
             Integer backupScore = gameState.getPlayerTreasureMap().get(backupId);
-            infoPanel.add(new JLabel(backupId + " (S) | " + backupScore));
+            tableModel.addRow(new Object[]{backupId + " (B)", backupScore});
         }
 
-        // rest of the players
+        // Add rest of the players
         for (Map.Entry<String, Integer> entry : gameState.getPlayerTreasureMap().entrySet()) {
-            String playerName = entry.getKey();
+            String id = entry.getKey();
             Integer score = entry.getValue();
-            if (!playerName.equals(primaryId) && !playerName.equals(backupId)) {
-                infoPanel.add(new JLabel(playerName + "      | " + score));
+            if (!id.equals(primaryId) && !id.equals(backupId)) {
+                tableModel.addRow(new Object[]{id, score});
             }
         }
 
+        // Create JTable with the model
+        JTable scoreTable = new JTable(tableModel);
+
+        // Set up custom cell renderer to apply pastel colors
+        scoreTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                // Alternate row colors
+                if (row == 0) {
+                    c.setBackground(pastelBlue);  // Primary player (row 0)
+                } else if (row == 1) {
+                    c.setBackground(pastelPurple);  // Backup player (row 1)
+                } else {
+                    // Alternate the rest of the rows
+                    if (row % 2 == 0) {
+                        c.setBackground(pastelGreen);  // Even rows
+                    } else {
+                        c.setBackground(pastelYellow);  // Odd rows
+                    }
+                }
+                return c;
+            }
+        });
+
+        // Add the table to a scroll pane and set its preferred size
+        JScrollPane scrollPane = new JScrollPane(scoreTable);
+        scoreTable.setFillsViewportHeight(true);  // Make the table fill its container
+        scrollPane.setPreferredSize(new Dimension(100, getHeight()));  // Set preferred size for the scoreboard
+
+        infoPanel.add(scrollPane, BorderLayout.CENTER);  // Add the table to the info panel
+
         return infoPanel;
     }
+
 
     // Update the game state and refresh the GUI
     public void updateGameState(GameState newGameState, String primaryId, String backupId) {
