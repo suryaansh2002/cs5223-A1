@@ -1,6 +1,5 @@
 import javax.swing.*;
 import java.awt.*;
-import java.util.List;
 import java.util.Map;
 
 public class GameGUI extends JFrame {
@@ -10,6 +9,9 @@ public class GameGUI extends JFrame {
     private String primaryId;
     private String backupId;
 
+    private JPanel mazePanel;  // Make mazePanel a class variable to update it
+    private JPanel infoPanel;  // Make infoPanel a class variable to update it
+
     public GameGUI(GameState gameState, String playerName, String primaryId, String backupId) {
         this.gameState = gameState;
         this.playerName = playerName;
@@ -17,14 +19,17 @@ public class GameGUI extends JFrame {
         this.backupId = backupId;
 
         // set up main frame
-        setTitle("Maze Game");
+        setTitle("Maze Game - " + playerName);
         setSize(800, 600);  // window size
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
         // add panels for the game
-        add(createMazePanel(), BorderLayout.CENTER);  // maze in the center
-        add(createPlayerInfoPanel(), BorderLayout.EAST);  // player info on right
+        mazePanel = createMazePanel();  // Initialize mazePanel
+        add(mazePanel, BorderLayout.CENTER);  // maze in the center
+
+        infoPanel = createPlayerInfoPanel();  // Initialize infoPanel
+        add(infoPanel, BorderLayout.EAST);  // player info on the right
 
         // Display the window
         setVisible(true);
@@ -55,36 +60,55 @@ public class GameGUI extends JFrame {
     }
 
     // player info panel
-private JPanel createPlayerInfoPanel() {
-    JPanel infoPanel = new JPanel();
-    infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));  // vertical box layout
+    private JPanel createPlayerInfoPanel() {
+        JPanel infoPanel = new JPanel();
+        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));  // vertical box layout
 
-    // header for player info
-    infoPanel.add(new JLabel("Player Info"));
-    infoPanel.add(new JLabel("ID    |  Score"));
+        // header for player info
+        infoPanel.add(new JLabel("Player Info"));
+        infoPanel.add(new JLabel("ID    |  Score"));
 
-    // add info primary player
-    if (primaryId != null && gameState.getPlayerTreasureMap().containsKey(primaryId)) {
-        Integer primaryScore = gameState.getPlayerTreasureMap().get(primaryId);
-        infoPanel.add(new JLabel(primaryId + " (M) | " + primaryScore));
-    }
-
-    // add info backup player if there
-    if (backupId != null && !backupId.isEmpty() && gameState.getPlayerTreasureMap().containsKey(backupId)) {
-        Integer backupScore = gameState.getPlayerTreasureMap().get(backupId);
-        infoPanel.add(new JLabel(backupId + " (S) | " + backupScore));
-    }
-
-    // rest of the players
-    for (Map.Entry<String, Integer> entry : gameState.getPlayerTreasureMap().entrySet()) {
-        String playerName = entry.getKey();
-        Integer score = entry.getValue();
-        if (!playerName.equals(primaryId) && !playerName.equals(backupId)) {
-            infoPanel.add(new JLabel(playerName + "      | " + score));
+        // add info primary player
+        if (primaryId != null && gameState.getPlayerTreasureMap().containsKey(primaryId)) {
+            Integer primaryScore = gameState.getPlayerTreasureMap().get(primaryId);
+            infoPanel.add(new JLabel(primaryId + " (M) | " + primaryScore));
         }
+
+        // add info backup player if there
+        if (backupId != null && !backupId.isEmpty() && gameState.getPlayerTreasureMap().containsKey(backupId)) {
+            Integer backupScore = gameState.getPlayerTreasureMap().get(backupId);
+            infoPanel.add(new JLabel(backupId + " (S) | " + backupScore));
+        }
+
+        // rest of the players
+        for (Map.Entry<String, Integer> entry : gameState.getPlayerTreasureMap().entrySet()) {
+            String playerName = entry.getKey();
+            Integer score = entry.getValue();
+            if (!playerName.equals(primaryId) && !playerName.equals(backupId)) {
+                infoPanel.add(new JLabel(playerName + "      | " + score));
+            }
+        }
+
+        return infoPanel;
     }
 
-    return infoPanel;
-}
+    // Update the game state and refresh the GUI
+    public void updateGameState(GameState newGameState, String primaryId, String backupId) {
+        this.gameState = newGameState;
+        this.primaryId = primaryId;
+        this.backupId = backupId;
+        // Update the maze panel
+        remove(mazePanel);  // Remove the old panel
+        mazePanel = createMazePanel();  // Recreate the maze panel with the updated state
+        add(mazePanel, BorderLayout.CENTER);  // Add the new panel
 
+        // Update the player info panel
+        remove(infoPanel);  // Remove the old panel
+        infoPanel = createPlayerInfoPanel();  // Recreate the info panel with updated state
+        add(infoPanel, BorderLayout.EAST);  // Add the new panel
+
+        // Revalidate and repaint to refresh the frame
+        revalidate();
+        repaint();
+    }
 }

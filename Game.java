@@ -25,8 +25,6 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
         this.gameList = gameList;
     }
 
-   
-
     // a mapping of all the active game instances to their player name values
     private Map<Game_Interface, String> Game_InterfacePlayerNameMapping;
 
@@ -66,6 +64,9 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
     private String host;
     private int port;
 
+    private GameGUI gameGUI;
+
+
     public Game(String host, int port, String playerName) throws RemoteException, AlreadyBoundException, NotBoundException {
         this.gameStart = false;
 
@@ -80,6 +81,14 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
         this.host = host;
         this.port = port;
         this.playerName = playerName;
+
+        // If backup server is null Create a new instance of GameGUI with only primary server name.
+        this.gameGUI = null;
+
+        // // Set the window properties for the GUI
+        // gameGUI.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        // gameGUI.setSize(600, 600);  // Adjust window size as needed
+        // gameGUI.setVisible(true);   // Show the GUI
     }
 
 
@@ -203,7 +212,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
 
         if (getbackup() == null) {
             // If backup server is null Create a new instance of GameGUI with only primary server name.
-            GameGUI gameGUI = new GameGUI(serverGameState, playerName, getprimary().getName(), "");
+            this.gameGUI = new GameGUI(serverGameState, playerName, getprimary().getName(), "");
 
             // Set the window properties for the GUI
             gameGUI.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -212,7 +221,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
         }
         else {
             // Create a new instance of GameGUI with both primary and backup names
-            GameGUI gameGUI = new GameGUI(serverGameState, playerName, getprimary().getName(), getbackup().getName());
+            this.gameGUI = new GameGUI(serverGameState, playerName, getprimary().getName(), getbackup().getName());
 
             // Set the window properties for the GUI
             gameGUI.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -770,22 +779,25 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
 
         if (direction.getDirection() != 9) {
             if (getbackup() == null) {
-                // Create a new instance of GameGUI with primary ID
-                GameGUI gameGUI = new GameGUI(serverGameState, playerName, primary.getName(), "");
+                this.gameGUI.updateGameState(serverGameState,primary.getName(),""); 
 
-                // Set the window properties for the GUI
-                gameGUI.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                gameGUI.setSize(600, 600);  // Adjust window size as needed
-                gameGUI.setVisible(true);   // Show the GUI
+                // // Create a new instance of GameGUI with primary ID
+                // GameGUI gameGUI = new GameGUI(serverGameState, playerName, primary.getName(), "");
+
+                // // Set the window properties for the GUI
+                // gameGUI.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                // gameGUI.setSize(600, 600);  // Adjust window size as needed
+                // gameGUI.setVisible(true);   // Show the GUI
             }
             else {
-                // Create a new instance of GameGUI with both primary and backup IDs
-                GameGUI gameGUI = new GameGUI(serverGameState, playerName, primary.getName(), getbackup().getName());
+                this.gameGUI.updateGameState(serverGameState, primary.getName(), getbackup().getName()); 
+                // // Create a new instance of GameGUI with both primary and backup IDs
+                // GameGUI gameGUI = new GameGUI(serverGameState, playerName, primary.getName(), getbackup().getName());
 
-                // Set the window properties for the GUI
-                gameGUI.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                gameGUI.setSize(600, 600);  // Set the window size (adjust as needed)
-                gameGUI.setVisible(true);   // Display the window
+                // // Set the window properties for the GUI
+                // gameGUI.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                // gameGUI.setSize(600, 600);  // Set the window size (adjust as needed)
+                // gameGUI.setVisible(true);   // Display the window
             }
             Logger.info("Move made:" + direction.getDirection() + ", Player Name:" + playerName);
             numOfStep++;
