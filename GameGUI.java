@@ -1,3 +1,9 @@
+// add numbers to graph
+// player score panel
+// treasure image
+
+
+
 import javax.swing.*;
 import java.awt.*;
 import java.util.Map;
