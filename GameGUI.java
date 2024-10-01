@@ -16,66 +16,66 @@ public class GameGUI extends JFrame {
         this.primaryId = primaryId;
         this.backupId = backupId;
 
-        // Set up the main frame
+        // set up main frame
         setTitle("Maze Game");
-        setSize(800, 600);  // You can adjust the size as needed
+        setSize(800, 600);  // window size
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // Create and add panels for the game
-        add(createMazePanel(), BorderLayout.CENTER);  // Maze in the center
-        add(createPlayerInfoPanel(), BorderLayout.EAST);  // Player info on the right
+        // add panels for the game
+        add(createMazePanel(), BorderLayout.CENTER);  // maze in the center
+        add(createPlayerInfoPanel(), BorderLayout.EAST);  // player info on right
 
         // Display the window
         setVisible(true);
     }
 
-    // Method to create the maze panel
+    // create maze panel
     private JPanel createMazePanel() {
         JPanel mazePanel = new JPanel();
-        mazePanel.setLayout(new GridLayout(gameState.getGridSize(), gameState.getGridSize()));  // Grid layout
+        mazePanel.setLayout(new GridLayout(gameState.getGridSize(), gameState.getGridSize()));  // grid layout
 
-        // Fill the grid with cells based on the game state
+        // grid cells based on game state
         for (int row = 0; row < gameState.getGridSize(); row++) {
             for (int col = 0; col < gameState.getGridSize(); col++) {
                 JPanel cell = new JPanel();
-                cell.setBorder(BorderFactory.createLineBorder(Color.BLACK));  // Add borders to the cells
+                cell.setBorder(BorderFactory.createLineBorder(Color.BLACK));  // borders
 
-                // Add players or treasure markers
+                // add players / treasure markers
                 if (gameState.getPlayerAt(row, col) != null) {
                     cell.add(new JLabel(gameState.getPlayerAt(row, col)));
                 } else if (gameState.getTreasureAt(row, col) == 1) {
                     cell.add(new JLabel("*"));
                 }
-                mazePanel.add(cell);  // Add the cell to the panel
+                mazePanel.add(cell);  // add cell to panel
             }
         }
 
         return mazePanel;
     }
 
-    // Method to create player info panel
+    // player info panel
 private JPanel createPlayerInfoPanel() {
     JPanel infoPanel = new JPanel();
-    infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));  // Vertical box layout
+    infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));  // vertical box layout
 
-    // Add a header for player info
+    // header for player info
     infoPanel.add(new JLabel("Player Info"));
     infoPanel.add(new JLabel("ID    |  Score"));
 
-    // Add information for primary player
+    // add info primary player
     if (primaryId != null && gameState.getPlayerTreasureMap().containsKey(primaryId)) {
         Integer primaryScore = gameState.getPlayerTreasureMap().get(primaryId);
         infoPanel.add(new JLabel(primaryId + " (M) | " + primaryScore));
     }
 
-    // Add information for backup player if applicable
+    // add info backup player if there
     if (backupId != null && !backupId.isEmpty() && gameState.getPlayerTreasureMap().containsKey(backupId)) {
         Integer backupScore = gameState.getPlayerTreasureMap().get(backupId);
         infoPanel.add(new JLabel(backupId + " (S) | " + backupScore));
     }
 
-    // Add the rest of the players (excluding primary and backup)
+    // rest of the players
     for (Map.Entry<String, Integer> entry : gameState.getPlayerTreasureMap().entrySet()) {
         String playerName = entry.getKey();
         Integer score = entry.getValue();
