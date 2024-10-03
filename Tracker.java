@@ -73,21 +73,20 @@ public class Tracker extends UnicastRemoteObject implements Tracker_Interface {
 
     // prints current number of players along with who is primary & backup
     private void logServerState() throws RemoteException {
-        Logger.info("Game State -> Server List Size = " + serverList.size());
+        Logger.info("No. of active players: " + serverList.size());
         int i = 0;
         for (Game_Interface Game_Interface : serverList) {
             i++;
             try {
-                Logger.info("Player " + i + ": playerName = " + Game_Interface.getName() +
-                        "; isprimary = " + Game_Interface.getIsprimary() + "; isbackup = " + Game_Interface.getIsbackup());
+                Logger.info(
+                    "Player " + i + ": playerName = " + Game_Interface.getName() +
+                     "; Primary = " + Game_Interface.getIsprimary() + "; Backup = " + Game_Interface.getIsbackup());
             } catch (Exception e){
+
             }
         }
     }
     private static void createTracker(Tracker_Interface tracker) throws RemoteException, NotBoundException, AlreadyBoundException, MalformedURLException {
-
-
-        //try and retry for 3 times (for crashes)
         try {
             Naming.rebind("//localhost:" + tracker.getTrackerPort() + "/tracker", tracker);
         } catch (Exception e) {
@@ -112,7 +111,7 @@ public class Tracker extends UnicastRemoteObject implements Tracker_Interface {
             }
         }
 
-        Logger.info("Tracker Created Successfully on Port "); // on success
+        Logger.info("Tracker Created Successfully! "); // on success
     }
 
 
