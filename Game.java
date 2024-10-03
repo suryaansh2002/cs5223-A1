@@ -191,14 +191,14 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
                 Logger.exception(error);
                 Thread.sleep(500);
                 try {
-                    gameList = tracker.getServerList();
+                    gameList = tracker.getTrackerServerList();
                     Game_Interface primary = gameList.get(0);
                     primary.primaryServerAddNewPlayer(this.playerName);
                 } catch (Exception error2) {
                     Logger.exception(error2);
                     Thread.sleep(500);
                     try {
-                        gameList = tracker.getServerList();
+                        gameList = tracker.getTrackerServerList();
                         Game_Interface primary = gameList.get(0);
                         primary.primaryServerAddNewPlayer(this.playerName);
                     } catch (Exception error3) {
@@ -233,8 +233,8 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
 
     // Initializing Game State using N and K from tracker
     private void initializeGameState() throws RemoteException {
-        int n = tracker.getN();
-        int k = tracker.getK();
+        int n = tracker.getGridSize();
+        int k = tracker.getNumOfTreasures();
 
         // Create new instance of GameState
         serverGameState = new GameState(n, k);
@@ -282,7 +282,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
 
         update_Game_Interface_PlayerNameMapping();
 
-        tracker.setServerList(gameList); // Update Tracker's server list.
+        tracker.setTrackerServerList(gameList); // Update Tracker's server list.
 
 
         game.startGame(serverGameState);
@@ -353,7 +353,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
         // Logger 
         printPlayerNames();
         // Updating  Trackers Server list
-        tracker.setServerList(gameList);
+        tracker.setTrackerServerList(gameList);
     }
 
     
@@ -533,7 +533,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
                     Game_Interface.setbackup(true);
                     
                     // Tracker Game list updated
-                    gameList = tracker.setServerList(gameList);
+                    gameList = tracker.setTrackerServerList(gameList);
                     
                     update_Game_Interface_PlayerNameMapping();
 
@@ -546,15 +546,15 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
                     // Removing dead server which primary was unable to ping
                     Logger.error("Played pinged by primary is dead, Name:" + Game_Interface_Name);
                     removeDeadGameServer(Game_Interface_Name);
-                    gameList = tracker.getServerList();
+                    gameList = tracker.getTrackerServerList();
                     gameList.remove(Game_Interface);
-                    gameList = tracker.setServerList(new ArrayList<>(gameList));
+                    gameList = tracker.setTrackerServerList(new ArrayList<>(gameList));
                     update_Game_Interface_PlayerNameMapping();
                 }
             }
 
             // If none of the players replied, to get updated list from tracker
-            gameList = tracker.getServerList();
+            gameList = tracker.getTrackerServerList();
             update_Game_Interface_PlayerNameMapping();
 
             if (gameList.size() > 2) {
@@ -574,7 +574,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
             isbackup = false;
             isprimary = true;
 
-            gameList = tracker.getServerList(); 
+            gameList = tracker.getTrackerServerList(); 
             Logger.info("backupBecomeprimary() -  No. of active Players:  " + gameList.size()
                     + " Old Primary Server Name: " + oldprimaryServerName);
 
@@ -587,7 +587,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
                 Logger.info("Original primary is already removed, can ignore this exception");
             }
             update_Game_Interface_PlayerNameMapping();
-            gameList = tracker.setServerList(new ArrayList<>(gameList));
+            gameList = tracker.setTrackerServerList(new ArrayList<>(gameList));
 
 
             // Since now this is the primary thread, it will ping all the servers
@@ -733,7 +733,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
         } catch (Exception e) {
             Thread.sleep(500); // In case primary server is dead when player makes a move 
             // Wait till backup becomes primary, once primary is availabl, get new primary 
-            gameList = tracker.getServerList();
+            gameList = tracker.getTrackerServerList();
             update_Game_Interface_PlayerNameMapping();
 
             try {
@@ -876,7 +876,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
                 this.update_Game_Interface_PlayerNameMapping();
 
                 // Updating Server list with tracker
-                tracker.setServerList(this.gameList);
+                tracker.setTrackerServerList(this.gameList);
 
                 try {
                     // make back up to primary
@@ -891,7 +891,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
                     this.serverGameState.playerQuit(playerName);
                     this.gameList.clear();
                     this.update_Game_Interface_PlayerNameMapping();
-                    tracker.setServerList(this.gameList);
+                    tracker.setTrackerServerList(this.gameList);
                 }
             }
         } else if (game.getIsbackup()) {
@@ -901,7 +901,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
             this.serverGameState.playerQuit(playerName);
             this.gameList.remove(game);
             this.update_Game_Interface_PlayerNameMapping();
-            tracker.setServerList(this.gameList);
+            tracker.setTrackerServerList(this.gameList);
 
             this.assignNewbackupServer(serverGameState);
         } else {
@@ -918,7 +918,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
             this.update_Game_Interface_PlayerNameMapping();
 
             // Update Server list of tracker
-            tracker.setServerList(this.gameList);
+            tracker.setTrackerServerList(this.gameList);
         }
 
         game.quit();
@@ -943,7 +943,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
                     return gameList.get(i);
             }
 
-            gameList = tracker.getServerList();
+            gameList = tracker.getTrackerServerList();
             update_Game_Interface_PlayerNameMapping();
             for (int i = 0; i < gameList.size(); i++) {
                 if (gameList.get(i).getIsprimary()) {
@@ -955,12 +955,12 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
             Logger.exception(e);
             Thread.sleep(500);
             try {
-                gameList = tracker.getServerList();
+                gameList = tracker.getTrackerServerList();
                 update_Game_Interface_PlayerNameMapping();
                 return getprimary();
             } catch (Exception error) {
                 error.printStackTrace();
-                gameList = tracker.getServerList();
+                gameList = tracker.getTrackerServerList();
                 update_Game_Interface_PlayerNameMapping();
                 return getprimary();
             }
@@ -979,7 +979,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
             } else {
                 // try to retrieve the list from Tracker and retry
                 Logger.info("getbackup(): Cant get backup from game list. Fetch the updated list from tracker and retry.");
-                gameList = tracker.getServerList();
+                gameList = tracker.getTrackerServerList();
                 update_Game_Interface_PlayerNameMapping();
                 if (gameList.size() >= 2 && gameList.get(1).getIsbackup()) {
                     return gameList.get(1);
@@ -997,7 +997,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
             Logger.info("getbackup(): Get updated user list from Tracker and try to find back up server");
 
             try {
-                gameList = tracker.getServerList();
+                gameList = tracker.getTrackerServerList();
                 update_Game_Interface_PlayerNameMapping();
                 if (gameList.size() >= 2 && gameList.get(1).getIsbackup()) {
                     return gameList.get(1);
