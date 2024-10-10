@@ -56,6 +56,13 @@ public class Tracker extends UnicastRemoteObject implements Tracker_Interface {
     @Override
     public synchronized List<Game_Interface> joinGame(String ipAddress, int port, String playerName) throws MalformedURLException, NotBoundException, RemoteException {
         Logger.info("playerName: " + playerName + " is joining game.");
+        // throw error if playerName is already in use
+        for (Game_Interface game : serverList) {
+            if (game.getName().equals(playerName)) {
+                Logger.error("Player with name " + playerName + " already exists. Please choose a different name.");
+                throw new RemoteException("Player with name " + playerName + " already exists. Please choose a different name.");
+            }
+        }
 
         String url = new String("//" + ipAddress + ":" + port + "/" + playerName); // building URL for new player
 

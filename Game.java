@@ -247,6 +247,12 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
             Logger.error("Only primary server can add new player. Called wrong server by- " + playerName);
             return false;
         }
+
+        // if the player already exists, return
+        if (Game_InterfacePlayerNameMapping.containsValue(playerName)) {
+            Logger.error("Player with name " + playerName + " already exists. Please choose a different name.");
+            return false;
+        }
         
         Game_Interface game = null;
         
@@ -367,7 +373,6 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
                 }
             }
         };
-
         this.inputUserThread.start();
     }
 
@@ -551,7 +556,9 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
     }
     // Function to start primary pinging thread
     public synchronized void startprimaryPingAllThread() throws RemoteException {
-
+        if (forceQuit) {
+            return;
+        }
         Logger.info("Start primaryPingAllThread. Player Name: " + playerName);
 
         // To ensure only Primary server calls this function.
@@ -580,6 +587,9 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
     // Function to start backup pinging primary thread
     @Override
     public synchronized void startbackupPingPrimaryThread() throws RemoteException {
+        if (forceQuit) {
+            return;
+        }
 
         Logger.info("Start backupPingPrimaryThread. Player Name: " + playerName);
 
@@ -1022,7 +1032,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
 
 
     private void leaveAssignNewBackup(String playerName, Game_Interface game) throws RemoteException {
-        Logger.info("leaveGame(): Backup server " + playerName + " leaving the game, mew backup to be assigned");
+        Logger.info("leaveGame(): Backup server " + playerName + " leaving the game, new backup to be assigned");
 
             this.serverGameState.playerQuit(playerName);
             this.gameList.remove(game);
@@ -1103,6 +1113,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
             }
 
             forceQuit = true;
+            System.exit(0);
         } catch (Exception e) {
             e.printStackTrace();
             Logger.exception(e);
