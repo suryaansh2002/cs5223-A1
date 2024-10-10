@@ -17,8 +17,8 @@ import java.util.ArrayList;
 public class Tracker extends UnicastRemoteObject implements Tracker_Interface {
 
     // constructor - initializes port, n, k, creates empty list for serverList i.e. game instances
-    public Tracker(Integer trackerPort, Integer gridSize, Integer numOfTreasures) throws RemoteException, NotBoundException {
-        this.gridSize = gridSize;
+    public Tracker(Integer trackerPort, Integer gridDimensions, Integer numOfTreasures) throws RemoteException, NotBoundException {
+        this.gridDimensions = gridDimensions;
         this.serverList = new ArrayList<>();
         this.numOfTreasures = numOfTreasures;
         this.trackerPort = trackerPort;
@@ -29,7 +29,7 @@ public class Tracker extends UnicastRemoteObject implements Tracker_Interface {
     private Integer numOfTreasures; // number of treasures
     private Integer trackerPort; // port where tracker is running
     private List<Game_Interface> serverList; // holds Game_Interface objects
-    private Integer gridSize; // Grid size
+    private Integer gridDimensions; // Grid size
 
        
     @Override
@@ -46,8 +46,8 @@ public class Tracker extends UnicastRemoteObject implements Tracker_Interface {
 
 
     @Override // for setting n & k
-    public void initializeGame(int gridSize, int numOfTreasures) throws RemoteException { 
-        this.gridSize = gridSize;
+    public void initializeGame(int gridDimensions, int numOfTreasures) throws RemoteException { 
+        this.gridDimensions = gridDimensions;
         this.numOfTreasures = numOfTreasures;
     }
 
@@ -116,8 +116,8 @@ public class Tracker extends UnicastRemoteObject implements Tracker_Interface {
 
 
     @Override
-    public Integer getGridSize() throws RemoteException {
-        return gridSize; // return number of players
+    public Integer getgridDimensions() throws RemoteException {
+        return gridDimensions; // return number of players
     }
 
 
@@ -141,14 +141,14 @@ public class Tracker extends UnicastRemoteObject implements Tracker_Interface {
         }
         
         int trackerPort = Integer.parseInt(args[0]);
-        int gridSize = Integer.parseInt(args[1]);
+        int gridDimensions = Integer.parseInt(args[1]);
         int numOfTreasures = Integer.parseInt(args[2]);
        
-        Tracker_Interface tracker = new Tracker(trackerPort, gridSize, numOfTreasures);
+        Tracker_Interface tracker = new Tracker(trackerPort, gridDimensions, numOfTreasures);
         
         createTracker(tracker);
         
-        tracker.initializeGame(gridSize, numOfTreasures);
+        tracker.initializeGame(gridDimensions, numOfTreasures);
     }
 }
 

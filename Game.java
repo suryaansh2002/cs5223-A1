@@ -171,7 +171,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
             // IF current game server is primary server then intialize its game state, 
             // assign itself a random position on the board and start the game.
             initializeGameState();
-            serverGameState.addNewPlayerToGame(playerName);
+            serverGameState.registerPlayer(playerName);
             startGame(serverGameState);
 
         } else {
@@ -226,7 +226,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
 
     // Initializing Game State using N and K from tracker
     private void initializeGameState() throws RemoteException {
-        int n = tracker.getGridSize();
+        int n = tracker.getgridDimensions();
         int k = tracker.getNumOfTreasures();
 
         // Create new instance of GameState
@@ -267,7 +267,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
             initializeGameState();
         }
         // Assign random position to new player, set score to 0
-        serverGameState.addNewPlayerToGame(playerName);
+        serverGameState.registerPlayer(playerName);
 
         if (gameList.size() == 2) { // If only two servers in game make current server as backup
             game.setbackup(true);
@@ -673,13 +673,13 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
        // Sending move to primary server to actually make the move.
         Game_Interface primary = playerMoveCallPrimary();
 
-        playerMakeMove(direction, primary);
+        playermovePlayer(direction, primary);
     }
 
 
 
 
-    private void playerMakeMove(Direction direction, Game_Interface primary)
+    private void playermovePlayer(Direction direction, Game_Interface primary)
             throws GameErrorException, MalformedURLException, NotBoundException, InterruptedException, RemoteException {
         try {
             // Primary Server Making the move
@@ -746,7 +746,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
 
         Logger.info("move(): Player Name: " + playerName + " trying to make move. Direction:" + direction + ".  Primary Server:" + this.playerName);
 
-        serverGameState.makeMove(playerName, direction, numOfStep);
+        serverGameState.movePlayer(playerName, direction, numOfStep);
 
         // Move made
 

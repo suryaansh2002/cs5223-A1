@@ -63,13 +63,13 @@ public class GameGUI extends JFrame {
     private JPanel createMazePanel() {
         // Create a panel with one extra row and column for numbering
         JPanel mazePanel = new JPanel();
-        mazePanel.setLayout(new GridLayout(gameState.getGridSize() + 1, gameState.getGridSize() + 1));
+        mazePanel.setLayout(new GridLayout(gameState.getgridDimensions() + 1, gameState.getgridDimensions() + 1));
 
         // Add empty label at the top-left corner (0,0 position)
         mazePanel.add(new JLabel("INDEX")); 
 
         // Add column numbers at the top
-        for (int col = 0; col < gameState.getGridSize(); col++) {
+        for (int col = 0; col < gameState.getgridDimensions(); col++) {
             // mazePanel.add(new JLabel(String.valueOf(col), SwingConstants.CENTER));
             JLabel colLabel = new JLabel(String.valueOf(col), SwingConstants.CENTER);
             colLabel.setOpaque(true);  // Make sure the background is painted
@@ -78,7 +78,7 @@ public class GameGUI extends JFrame {
         }
 
         // Add row numbers and the maze grid
-        for (int row = 0; row < gameState.getGridSize(); row++) {
+        for (int row = 0; row < gameState.getgridDimensions(); row++) {
             // Add the row number at the start of each row
             JLabel rowLabel = new JLabel(String.valueOf(row), SwingConstants.CENTER);
             rowLabel.setOpaque(true);
@@ -86,7 +86,7 @@ public class GameGUI extends JFrame {
             mazePanel.add(rowLabel);
 
             // Add the actual maze cells
-            for (int col = 0; col < gameState.getGridSize(); col++) {
+            for (int col = 0; col < gameState.getgridDimensions(); col++) {
                 JPanel cell = new JPanel();
                 cell.setBorder(BorderFactory.createLineBorder(Color.BLACK));
 

@@ -6,7 +6,7 @@ import java.net.MalformedURLException;
 
 public interface Tracker_Interface extends Remote {
     
-    Integer getGridSize() throws RemoteException;
+    Integer getgridDimensions() throws RemoteException;
    
     Integer getTrackerPort() throws RemoteException;
     List<Game_Interface> getTrackerServerList() throws RemoteException;
