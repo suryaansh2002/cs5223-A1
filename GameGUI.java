@@ -1,7 +1,4 @@
-// add numbers to graph
-// player score panel
-// treasure image
-
+// game GUI
 
 
 import javax.swing.*;

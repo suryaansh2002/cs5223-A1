@@ -4,7 +4,7 @@ with raw numbers, easier to see Direction.W, Direction.S, etc.
 Therefore:
     1. Readability
     2. Error handling (INVALID)
-    3. Abstraction - easier to modify if want to add new directions (eg. diagonal)
+    3. Abstraction - easier to modify if want to add new directions in future (eg. diagonal)
 */
 
 public enum Direction {

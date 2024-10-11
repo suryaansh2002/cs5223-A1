@@ -52,11 +52,11 @@ public class Position implements Serializable{
         return y != null ? y.equals(position.y) : position.y == null;
     }
 
-    //  Generates a hash code for this Position object based on its x and y coordinates.
-    @Override
-    public int hashCode() {
-        int result = x != null ? x.hashCode() : 0;
-        result = 31 * result + (y != null ? y.hashCode() : 0);
-        return result;
-    }
+    // //  Generates a hash code for this Position object based on its x and y coordinates.
+    // @Override
+    // public int hashCode() {
+    //     int result = x != null ? x.hashCode() : 0;
+    //     result = 31 * result + (y != null ? y.hashCode() : 0);
+    //     return result;
+    // }
 }
