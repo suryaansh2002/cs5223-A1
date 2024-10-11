@@ -78,10 +78,6 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
         // If backup server is null Create a new instance of GameGUI with only primary server name.
         this.gameGUI = null;
 
-        // // Set the window properties for the GUI
-        // gameGUI.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        // gameGUI.setSize(600, 600);  // Adjust window size as needed
-        // gameGUI.setVisible(true);   // Show the GUI
     }
 
 
@@ -312,49 +308,40 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
         if (isprimary) {
             updateGameToPlayerNameMapping();
 
-            // Iterate through all players in game list by pinging
-            // the 1st player responses will be the new backup
-            
-            int i = 1;
-
-            while (i < gameList.size()) {
-                Game_Interface Game_Interface = gameList.get(i);
-                String Game_Interface_Name = Game_Interface.getName();
+            while (gameList.size() > 1) {
+                Game_Interface bakGame = gameList.get(1);
+                String bakGameName = bakGame.getName();
                 try {
-                    Game_Interface.ping();
-                    
-                    // Ping Successfull
-
+                    bakGame.ping();
+                    // Ping Successful
+                    Logger.info("Assigning new backup server. Player Name: " + bakGameName);
                     updateGameToPlayerNameMapping();
                     
-                    Game_Interface.updateGameState(serverGameState);
-                    Game_Interface.updateServersGameList(gameList);
-
+                    bakGame.updateGameState(serverGameState);
+                    bakGame.updateServersGameList(gameList);
                     // New Backup assigned
-                    Game_Interface.setbackup(true);
+                    bakGame.setbackup(true);
                     
                     // Tracker Game list updated
-                    gameList = tracker.setTrackerServerList(gameList);
-                    
+                    gameList = tracker.setTrackerServerList(gameList);                   
                     updateGameToPlayerNameMapping();
 
                     // Newly assigned Backup server to begin pinging primary server.
-                    Game_Interface.startbackupPingPrimaryThread();
-
+                    bakGame.startbackupPingPrimaryThread();
                     return;
                 } catch (RemoteException e) {
                     Logger.exception(e);
                     // Removing dead server which primary was unable to ping
-                    Logger.error("Played pinged by primary is dead, Name:" + Game_Interface_Name);
-                    removeDeadGameServer(Game_Interface_Name);
+                    Logger.error("Played pinged by primary is dead, Name:" + bakGameName);
+                    removeDeadGameServer(bakGameName);
                     gameList = tracker.getTrackerServerList();
-                    gameList.remove(Game_Interface);
+                    gameList.remove(bakGame);
                     gameList = tracker.setTrackerServerList(new ArrayList<>(gameList));
                     updateGameToPlayerNameMapping();
                 }
             }
 
-            // If none of the players replied, to get updated list from tracker
+            // If none of the players replied, get updated list from tracker
             gameList = tracker.getTrackerServerList();
             updateGameToPlayerNameMapping();
 
@@ -433,7 +420,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
         serverGameState.updatePlayerList(new ArrayList<>(Game_InterfacePlayerNameMapping.values()));
         // Logger 
         printPlayerNames();
-        // Updating  Trackers Server list
+        // Updating Trackers Server list
         tracker.setTrackerServerList(gameList);
     }
 
