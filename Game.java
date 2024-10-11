@@ -154,9 +154,16 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
                 try {
                     this.gameList = tracker.joinGame(host, port, playerName);
                 } catch (Exception error3) {
-                    error3.printStackTrace();
                     Logger.exception(error3);
-                    return;
+                    Logger.error("Error in joining game from tracker.. retrying..");
+                    try {
+                        Thread.sleep(100);
+                        joinGameFromTracker();
+                    } catch (Exception e4) {
+                        Logger.exception(e4);
+                        // quit game
+                        forceQuit = true;
+                    }
                 }
             }
         }
@@ -164,7 +171,9 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
 
 
     private void joinGameFromPrimaryServer() throws RemoteException, MalformedURLException, NotBoundException, GameErrorException, InterruptedException {
-
+        if (forceQuit) {
+            return;
+        }
         Logger.info("No. of Active Players:" + gameList.size());
 
         if (isprimary) {
@@ -182,14 +191,14 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
                 primary.primaryServerAddNewPlayer(this.playerName);
             } catch (Exception error) {
                 Logger.exception(error);
-                Thread.sleep(500);
+                Thread.sleep(100);
                 try {
                     gameList = tracker.getTrackerServerList();
                     Game_Interface primary = gameList.get(0);
                     primary.primaryServerAddNewPlayer(this.playerName);
                 } catch (Exception error2) {
                     Logger.exception(error2);
-                    Thread.sleep(500);
+                    Thread.sleep(100);
                     try {
                         gameList = tracker.getTrackerServerList();
                         Game_Interface primary = gameList.get(0);
@@ -442,7 +451,6 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
             return;
         }
 
-
         if (gameList.size() == 1) { // Only Primary Server
             return;
         }
@@ -453,7 +461,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
             String backupId = Game_InterfacePlayerNameMapping.get(backup);
             try { // Handle case in which Backup server had failed, to assign new back up server
                 backup.ping();
-                if (backup.getIsbackup() == false) {
+                if (!backup.getIsbackup()) {
                     assignNewbackupServer(serverGameState);
                 }
                 try {
@@ -464,7 +472,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
                 }
             } catch (RemoteException e) {
                 Logger.exception(e);
-                Logger.info("Ping to Backup server failed. Backup " + backupId + "is down. ");
+                Logger.info("Ping to Backup server failed. Backup " + backupId + " is down. ");
 
                 removeDeadGameServer(backupId);
                 this.gameList.remove(backup);
@@ -590,7 +598,6 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
         if (forceQuit) {
             return;
         }
-
         Logger.info("Start backupPingPrimaryThread. Player Name: " + playerName);
 
         // To ensure only Backup server calls this function.
@@ -776,7 +783,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
             }
         }
 
-        Logger.info("move(): Player Name: " + playerName + "made a move in direction- " + direction + " Primary game server name: " + this.playerName);
+        Logger.info("move(): Player Name: " + playerName + " made a move in direction- " + direction + " Primary game server name: " + this.playerName);
         updateGameToPlayerNameMapping();
         return serverGameState;
     }
@@ -845,20 +852,14 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
             return this;
         }
         try {
+            Logger.info("getbackup(): Get updated user list from Tracker and try to find back up server");
             return fetchBackupServer();
         } catch (Exception error) {
             //wait try again to get back up server
+            Logger.error("Player " + playerName + " unable to get Backup Server");
             try {
                 Thread.sleep(300);
-            } catch (InterruptedException error2) {
-                Logger.info("getbackup(): Thread interrupted during sleep.");
-            }
-            Logger.info("getbackup(): Get updated user list from Tracker and try to find back up server");
-
-            try {
-                gameList = tracker.getTrackerServerList();
-                updateGameToPlayerNameMapping();
-                fetchBackupServer();
+                return fetchBackupServer();
             } catch (Exception error2) {
                 error2.printStackTrace();
                 Logger.exception(error2);
@@ -868,21 +869,19 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
     }
 
     private Game_Interface fetchBackupServer() throws RemoteException, GameErrorException {
-        this.gameList = tracker.getTrackerServerList();
-        if (gameList.size() >= 2 && gameList.get(1).getIsbackup())
-        {
-            return gameList.get(1);
-        } else {
-            // try to retrieve the list from Tracker and retry
-            Logger.info("getbackup(): Cant get backup from game list. Fetch the updated list from tracker and retry.");
-            gameList = tracker.getTrackerServerList();
-            updateGameToPlayerNameMapping();
-            if (gameList.size() >= 2 && gameList.get(1).getIsbackup()) {
-                return gameList.get(1);
-            } else {
-                throw new GameErrorException("Backup Server not found");
+        for (Game_Interface game : gameList) {
+            if (game.getIsbackup()) {
+                return game;
             }
         }
+        this.gameList = tracker.getTrackerServerList();
+        updateGameToPlayerNameMapping();
+        for (Game_Interface game : gameList) {
+            if (game.getIsbackup()) {
+                return game;
+            }
+        }
+        throw new GameErrorException("Backup Server Not Found!");
     }
 
     // Function to handle Failure of primary server by making current backup server to primary.
@@ -1091,7 +1090,7 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
     @Override
     public void quit() throws RemoteException {
         try {
-            Logger.info("quit(): Plater Name:" + playerName);
+            Logger.info("quit(): Player Name:" + playerName);
             UnicastRemoteObject.unexportObject(this, true);
 
             String url = "//" + host + ":" + port + "/" + playerName;
@@ -1113,7 +1112,6 @@ public class Game extends UnicastRemoteObject implements Game_Interface {
             }
 
             forceQuit = true;
-            System.exit(0);
         } catch (Exception e) {
             e.printStackTrace();
             Logger.exception(e);
