@@ -213,8 +213,14 @@ public class GameState implements Serializable {
 
     // Remove player from playerPositionGrid 
     private void evictPlayerFromGrid(String playerName) {
-        Position position = playerPositionMap.get(playerName);
-        playerPositionGrid[position.getX()][position.getY()] = null;
+        // Remove player from playerPositionGrid
+        for (int i = 0; i < gridDimensions; i++) {
+            for (int j = 0; j < gridDimensions; j++) {
+                if (playerPositionGrid[i][j] != null && playerPositionGrid[i][j].equals(playerName)) {
+                    playerPositionGrid[i][j] = null;
+                }
+            }
+        }
     }
 
 
