@@ -89,7 +89,8 @@ public class Tracker extends UnicastRemoteObject implements Tracker_Interface {
                     "Player " + i + ": playerName = " + Game_Interface.getName() +
                      "; Primary = " + Game_Interface.getIsprimary() + "; Backup = " + Game_Interface.getIsbackup());
             } catch (Exception e){
-
+                e.printStackTrace();
+                Logger.exception(e);
             }
         }
     }
