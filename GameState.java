@@ -102,6 +102,8 @@ public class GameState implements Serializable {
         
         // Check if player exists
         if (currentPosition == null) {
+            Logger.error("Player location not found! MAKE A NEW ONE: " + playerName);
+            registerPlayer(playerName);
             return;
         }
 
