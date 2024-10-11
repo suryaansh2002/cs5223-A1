@@ -6,7 +6,7 @@ Open Multiple terminal tabs-
 2. T2: java Tracker 1099 5 5
 3. T3:  java Game  127.0.0.1 1099 ab
 4. T4:  java Game  127.0.0.1 1099 cd
-5. T4:  java Game  127.0.0.1 1099 ef
+5. T5:  java Game  127.0.0.1 1099 ef
 
 
 To run stress test:
