@@ -8,6 +8,10 @@ Open Multiple terminal tabs-
 4. T4:  java Game  127.0.0.1 1099 cd
 5. T5:  java Game  127.0.0.1 1099 ef
 
+   1-  west
+   2-  south 
+   3- east
+   4- north
 
 To run stress test:
 1. T1: rmiregistry 1099
